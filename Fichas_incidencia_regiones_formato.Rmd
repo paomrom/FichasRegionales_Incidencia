@@ -1,0 +1,1233 @@
+---
+output:
+  html_document: default
+---
+
+![](images/logo_jal.PNG)
+
+<p style="text-align: right;">
+
+<center>
+
+</p>
+
+<center>
+
+# **Situación actual en la Región Valles en torno a la violencia de género contra mujeres, adolescentes y niñez.**
+
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+#Cargar librerias
+library(readxl)
+library(dplyr)
+library(ggplot2)    
+library(dplyr)      
+library(tidyverse) 
+library(esquisse)   
+library(tidyr)      
+library(plotly)     
+library(ggthemes)  
+library(janitor)    
+library(kableExtra) 
+library(scales)     
+library(viridis)    
+library(RColorBrewer) 
+library(extrafontdb)
+library(extrafont)
+library(sysfonts)
+library(lubridate)
+library(knitr)
+```
+
+```{r include=FALSE}
+regiones_jalisco <- read_excel("C:/Users/Paola Viridiana/Downloads/Regiones_directorio (1).xlsx")
+datosJaliscosep22<-read.csv("C:/Users/Paola Viridiana/Downloads/IDM_NM_nov22.csv", check.names = T, encoding = "latin1") %>%
+ mutate(Subtipo.de.delito=case_when(
+    Subtipo.de.delito=="Abuso sexual"~"Abuso sexual",
+    Subtipo.de.delito=="Violación equiparada"~"Violación",
+    Subtipo.de.delito=="Violación simple"~ "Violación",
+    Subtipo.de.delito=="Feminicidio"~"Feminicidio",
+    Subtipo.de.delito=="Violencia familiar" ~"Violencia familiar")) %>%
+   filter(Entidad=="Jalisco",
+    Subtipo.de.delito %in% c("Abuso sexual", "Feminicidio", 
+                             "Violación", "Violencia familiar")) %>% 
+  gather(Mes, Carpetas, Enero:Diciembre) %>% 
+  group_by(Año, Mes,Subtipo.de.delito, Municipio) %>% 
+  summarise(value=sum(Carpetas, na.rm = T))
+  
+merge_regional <- merge(regiones_jalisco, datosJaliscosep22, by.x = "Municipio", by.y = "Municipio", all.x = TRUE)
+```
+
+<div style="text-align: justify">
+
+La Región Valles está conformada por doce municipios: Ahualulco de Mercado, Amatitán, Ameca, San Juanito de Escobedo, El Arenal, Etzatlán, Hostotipaquillo, Magdalena, San Marcos, Tala, Tequila y Teuchitlán.
+
+De acuerdo a la Encuesta Intercensal de 2015, contaba con 316 mil 993 habitantes, de los cuales, 155 mil 808 son hombres (49.2%) y 161 mil 185 son mujeres (50.8%), es decir, el número de mujeres supera al de hombres en 5 mil 377 personas. Este volumen de población regional representa el 4.0 por ciento del total estatal.
+
+Con respecto de la violencia de género contra las mujeres, adolescentes y niñez, el comportamiento en los últimos años ha sido ascendente al punto que en la región se encuentra lo siguiente:
+
+------------------------------------------------------------------------
+
+<p style="text-align: left;">
+
+## **Abuso Sexual Infantil**
+
+</p>
+
+```{r include=FALSE}
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Abuso sexual") %>% 
+  group_by(Región) %>% 
+  summarise(Total_regional=sum(value)) %>% 
+  arrange(-Total_regional)->merge_regional_asi
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Abuso sexual") %>% 
+  summarise(Total_regional=sum(value))->total_regional_asi
+total_regional_asi[1,1]->historico_asi
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Abuso sexual",
+         Región=="Región Valles") %>% 
+  summarise(Total_regional=sum(value),
+            porcentaje=percent(Total_regional/16918))->porcentaje_regional_asi
+porcentaje_regional_asi[1,1]->total_regional_asi
+porcentaje_regional_asi[1,2]->porcentaje_regional_asi
+merge_regional_asi[1,1]->primera_region_asi
+merge_regional_asi[1,2]->primera_total_asi
+primera_total_asi<-primera_total_asi %>% unlist()
+merge_regional_asi[2,1]->segundo_region_asi
+merge_regional_asi[2,2]->segundo_total_asi
+segundo_total_asi<-segundo_total_asi %>% unlist()
+merge_regional_asi[3,1]->tercer_region_asi
+merge_regional_asi[3,2]->tercer_total_asi
+tercer_total_asi<-tercer_total_asi %>% unlist()
+```
+
+De acuerdo a los datos abiertos del Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública (SESNSP) del histórico de 2015 a noviembre del 2022, la **Región Valles** del estado de Jalisco representa el **`r porcentaje_regional_asi`** de las carpetas de investigación por **Abuso sexual** con una cifra de **`r comma(total_regional_asi)`**.
+
+La gráfica 1 muestra el ranking de regiones en el mismo periodo (2015 a 2022), en primera posición se encuentra la **`r primera_region_asi`**, con un total de **`r comma(primera_total_asi)`**, le sigue la **`r segundo_region_asi`** con **`r comma(segundo_total_asi)`** y **`r tercer_region_asi`** con **`r comma(tercer_total_asi)`** carpetas.
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+nb.cols <-12
+mycolors <- colorRampPalette(brewer.pal(9, "RdPu"))
+(nb.cols)
+merge_regional_asi %>% 
+mutate(text = paste("Región: ", Región,
+                    "\nTotal de carpetas: ", scales::comma(Total_regional), sep=""))%>%
+ggplot() + #Cambiar
+  aes(x=reorder(Región, Total_regional), y= Total_regional, 
+      fill= Total_regional, text=text) +
+  geom_col() +
+  #geom_text(aes(label=comma(Total_regional)), size=3.0, color="#030303", vjust = .5, hjust=-1) +
+  #scale_fill_viridis(discrete = F, option = "I", direction = -1) + #opción  A, B, C , D , E , F ,G +
+  scale_fill_gradient(low = "#dc8cad", high = "#f21d72")+
+  scale_y_continuous(labels = scales::comma) +
+  coord_flip() +
+  #scale_color_brewer(palette = "Dark2", direction = -1, labels = comma)+
+  labs(title = "Gráfica 1. Total de carpetas de investigación por el delito de abuso sexual infantil",
+       caption = "Elaborado con datos de Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública",
+       x="", y="", color="", fill="") +
+  theme_minimal() + 
+  theme(text=element_text(size=11, family = "Century Gothic"),
+        legend.position='none',
+        plot.title = element_text(size = 10L, hjust = 0, color = "#6e6d6d", family = "Century Gothic"),
+        plot.caption = element_text(size = 10L, hjust = 0, face = "italic", family = "Century Gothic"),
+        axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1, size=11, family = "Century Gothic"))->grafico_regional_asi
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.height=3}
+#Gráfico de barras total
+ggplotly(grafico_regional_asi, tooltip = "text")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Abuso sexual") %>% 
+  group_by(Región, Año) %>% 
+  summarise(Total_regional=sum(value)) %>% 
+  arrange(-Total_regional) %>% 
+  pivot_wider(names_from = Año, values_from = Total_regional)->regional_delito
+
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Abuso sexual") %>% 
+  group_by(Año) %>% 
+  summarise(Total_regional=sum(value)) %>%
+  pivot_wider(names_from = Año, values_from = Total_regional)-> entidad_delito
+
+rbind(regional_delito, entidad_delito)->resumen
+resumen[is.na(resumen)] <- "Total entidad"
+
+resumen<-resumen %>%  select(Región, `2015`, `2016`, `2017`, `2018`, `2019`, `2020`, `2021`, `2022`)
+```
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+DT::datatable(resumen, options = list(
+  paging= FALSE,
+  searching = FALSE,
+  pageLength = FALSE,
+  lengthMenu = TRUE))
+```
+
+```{r include=FALSE}
+merge_regional %>% 
+  mutate(Periodo = ymd(paste0(Año, "-", Mes, "-01"))) %>%
+  filter(Periodo<="2022-11-01") %>%  
+  group_by(Periodo) %>% 
+  filter(Subtipo.de.delito=="Abuso sexual") %>% 
+  summarise(Total=sum(value))->asi_jal
+merge_regional %>% 
+  mutate(Periodo = ymd(paste0(Año, "-", Mes, "-01"))) %>%
+  filter(Periodo<="2022-11-01") %>%  
+  group_by(Periodo) %>% 
+  filter(Subtipo.de.delito=="Abuso sexual") %>% 
+  summarise(Total=sum(value)) %>% 
+  arrange(-Total) %>% 
+  slice_head(n=1)->periodo_maximo_asi
+año_periodo_maximo_asi<-periodo_maximo_asi[1,1]
+#año_periodo_maximo_asi<-substr(año_periodo_maximo_asi$Periodo, start = 1, stop = 7)
+suma_periodo_maximo_asi<-periodo_maximo_asi[1,2]
+suma_periodo_maximo_asi<-suma_periodo_maximo_asi %>% unlist()
+merge_regional %>%
+  filter(Subtipo.de.delito %in% "Abuso sexual") %>%
+  summarise(Total=sum(value))->asi_2022_total
+asi_2022_total %>% unlist()
+merge_regional %>%
+  filter(Subtipo.de.delito %in% "Abuso sexual") %>%
+  summarise(Total=sum(value),
+            Promedio=round(Total/92))->historico_asi
+historico_asi[1,2]->promedio_asi
+historico_asi[1,1]->suma_asi
+suma_asi<-suma_asi %>% unlist
+asi_jal %>% 
+  mutate(text = paste("Periodo: ", format(as_date(asi_jal$Periodo), "%B de %Y"),
+                    "\nTotal de carpetas: ", scales::comma(Total), sep=""))%>%
+     filter(Periodo<="2022-11-01") %>%  
+ggplot() +
+  aes(x = Periodo, y = Total, group=1, text=text) +
+  geom_line(size = .5, colour = "#f21d72") +
+  geom_point(size = 1,colour = "#f21d72")+
+  theme_minimal()+
+  labs(title = "Gráfica 2. Carpetas de investigación por el delito de abuso sexual infantil, de enero 2015 a noviembre 2022",
+       caption = "Elaborado con datos de Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública",
+       x="", y="", color="", fill="") +
+  theme_minimal() + 
+  theme(text=element_text(size=11, family = "Century Gothic"),
+        legend.position='none',
+        plot.title = element_text(size = 10L, hjust = 0, color = "#6e6d6d", family = "Century Gothic"),
+        plot.caption = element_text(size = 10L, hjust = 0, face = "italic", family = "Century Gothic"),
+        axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1, size=11, family = "Century Gothic"))->asi_ts
+```
+
+En el periodo 2015 a 2022 se contabilizan **`r comma(suma_asi)`** carpetas por **Abuso sexual**, un promedio mensual de **`r comma(promedio_asi)`**. El mes con mayor registros de carpetas de investigación por este delito es el periodo de **`r format(as_date(año_periodo_maximo_asi$Periodo), "%B de %Y")`** con **`r comma(suma_periodo_maximo_asi)`**.
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+ggplotly(asi_ts, tooltip = "text")
+```
+
+```{r include=FALSE, fig.width=10, fig.height=5}
+merge_regional %>%
+  filter(Región %in% "Región Valles") %>%
+  filter(Subtipo.de.delito %in% "Abuso sexual") %>%
+  group_by(Año) %>% 
+  summarise(Total=sum(value))->anual_asi
+asi_total<- anual_asi%>% 
+  summarise(Total=sum(Total))
+asi_total<-asi_total %>% unlist()
+asi_año<-anual_asi %>% 
+   arrange(-Total)
+asi_año<-asi_año[1,1]
+  
+asi_max<-anual_asi %>% 
+   arrange(-Total)
+asi_max<-asi_max[1,2]
+asi_max<-asi_max %>% unlist()
+merge_regional %>%
+  filter(Región %in% "Región Valles",
+         Subtipo.de.delito %in% "Abuso sexual",
+         Año==2022) %>%
+  summarise(Total=sum(value))->asi_2022
+asi_2022<-asi_2022 %>% unlist()
+merge_regional %>%
+  filter(Región %in% "Región Valles",
+         Subtipo.de.delito %in% "Abuso sexual",
+         Año==2022) %>%
+  group_by(Municipio) %>% 
+  summarise(Total=sum(value)) %>% 
+  arrange(-Total)->asi_2022_mun
+mun_principales_asi<-asi_2022_mun %>% select(Municipio) %>% slice_head(n = 4) %>% unlist()
+asi_2022_mun %>% 
+  slice_head(n = 4) %>% 
+  summarise(Total=sum(Total))->asi_principal_4_suma
+asi_2022_mun<-asi_2022_mun %>% summarise(Total=sum(Total))
+principal_porcentaje_asi<-(asi_principal_4_suma/asi_2022_mun)*100
+anual_asi %>% 
+  mutate(text = paste("Año: ", Año,
+                      "\nTotal de carpetas: ", scales::comma(Total), sep="")) %>%
+ggplot() +
+  aes(x =as.factor(Año), y = Total, text=text) +
+  geom_col(fill = "#f21d72") +
+  theme_minimal()+
+  #geom_text(aes(label=comma(Total)), size=3.0)+
+  scale_fill_hue(direction = 1) +
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal()+
+  labs(title = "Gráfica 3. Carpetas anuales de investigación por el delito de abuso sexual infantil",
+       caption = "Elaborado con datos de Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública",
+       x="", y="", color="", fill="") +
+  theme_minimal() + 
+  theme(text=element_text(size=11, family = "Century Gothic"),
+        legend.position='none',
+        plot.title = element_text(size = 10L, hjust = 0, color = "#6e6d6d", family = "Century Gothic"),
+        plot.caption = element_text(size = 10L, hjust = 0, face = "italic", family = "Century Gothic"),
+        axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1, size=11, family = "Century Gothic"))->g_anual_asi
+```
+
+De 2015 a 2022 se han registrado **`r comma(asi_total)`** carpetas de **Abuso sexual infantil** en la región, el año con mayor registros es el **`r asi_año`** con **`r comma(asi_max)`**. De enero a noviembre 2022 se han contabilizado **`r comma(asi_2022)`** carpetas.
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+ggplotly(g_anual_asi, tooltip = "text")
+```
+
+De los municipios con mayor número de incidencia se encuentran: **`r mun_principales_asi`**, los cuales representan el **`r round(principal_porcentaje_asi)`** **%** de las carpetas registradas en la región durante 2022.
+
+```{r include=FALSE}
+merge_regional %>%
+  filter(Región %in% "Región Valles") %>%
+  filter(Subtipo.de.delito %in% "Abuso sexual") %>%
+  group_by(Municipio, Año) %>% 
+  summarise(Total=sum(value)) %>%  
+  pivot_wider(names_from = Año, values_from = Total) %>% 
+  select(Municipio, `2015`,`2016`,`2017`,`2018`,`2019`,`2020`,`2021`,`2022`) %>% 
+  arrange(-`2022`) %>% 
+  mutate(`2015`=scales::comma(`2015`),
+         `2016`=scales::comma(`2016`),
+         `2017`=scales::comma(`2017`),
+         `2018`=scales::comma(`2018`),
+         `2019`=scales::comma(`2019`),
+         `2020`=scales::comma(`2020`),
+         `2021`=scales::comma(`2021`),
+         `2022`=scales::comma(`2022`))->asi
+```
+
+```{r echo=FALSE, fig.height=10, fig.width=2}
+DT::datatable(asi, options = list(
+  paging= FALSE,
+  searching = FALSE,
+  pageLength = FALSE,
+  lengthMenu = TRUE))
+```
+
+------------------------------------------------------------------------
+
+<p style="text-align: left;">
+
+## **Violación**
+
+</p>
+
+```{r include=FALSE}
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Violación") %>% 
+  group_by(Región) %>% 
+  summarise(Total_regional=sum(value)) %>% 
+  arrange(-Total_regional)->merge_regional_vio
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Violación") %>% 
+  summarise(Total_regional=sum(value))->total_regional_vio
+total_regional_vio[1,1]->historico_vio
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Violación",
+         Región=="Región Valles") %>% 
+  summarise(Total_regional=sum(value),
+            porcentaje=percent(Total_regional/3300))->porcentaje_regional_vio
+porcentaje_regional_vio[1,1]->total_regional_vio
+porcentaje_regional_vio[1,2]->porcentaje_regional_vio
+merge_regional_vio[1,1]->primera_region_vio
+merge_regional_vio[1,2]->primera_total_vio
+primera_total_vio<-primera_total_vio %>% unlist()
+merge_regional_vio[2,1]->segundo_region_vio
+merge_regional_vio[2,2]->segundo_total_vio
+segundo_total_vio<-segundo_total_vio %>% unlist()
+merge_regional_vio[3,1]->tercer_region_vio
+merge_regional_vio[3,2]->tercer_total_vio
+tercer_total_vio<-tercer_total_vio %>% unlist()
+```
+
+De acuerdo a los datos abiertos del Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública (SESNSP) del histórico de 2015 a noviembre del 2022, la **Región Valles** del estado de Jalisco representa el **`r porcentaje_regional_vio`** de las carpetas de investigación por **Violación** con una cifra de **`r comma(total_regional_vio)`**.
+
+La gráfica 1 muestra el ranking de regiones en el mismo periodo (2015 a 2022), en primera posición se encuentra la **`r primera_region_vio`**, con un total de **`r comma(primera_total_vio)`**, le sigue la **`r segundo_region_vio`** con **`r comma(segundo_total_vio)`** y **`r tercer_region_vio`** con **`r comma(tercer_total_vio)`** carpetas.
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+nb.cols <-12
+mycolors <- colorRampPalette(brewer.pal(9, "RdPu"))
+(nb.cols)
+merge_regional_vio %>% 
+mutate(text = paste("Región: ", Región,
+                    "\nTotal de carpetas: ", scales::comma(Total_regional), sep=""))%>%
+ggplot() + #Cambiar
+  aes(x=reorder(Región, Total_regional), y= Total_regional, 
+      fill= Total_regional, text=text) +
+  geom_col() +
+  #geom_text(aes(label=comma(Total_regional)), size=3.0, color="#030303", vjust = .5, hjust=-1) +
+  #scale_fill_viridis(discrete = F, option = "I", direction = -1) + #opción  A, B, C , D , E , F ,G +
+  scale_fill_gradient(low = "#BA8CDC", high = "#7030A0")+
+  scale_y_continuous(labels = scales::comma) +
+  coord_flip() +
+  #scale_color_brewer(palette = "Dark2", direction = -1, labels = comma)+
+  labs(title = "Gráfica 4. Total de carpetas de investigación por el delito de violación",
+       caption = "Elaborado con datos de Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública",
+       x="", y="", color="", fill="") +
+  theme_minimal() + 
+  theme(text=element_text(size=11),
+        legend.position='none',
+        plot.title = element_text(size = 10L, hjust = 0, color = "#6e6d6d"),
+        plot.caption = element_text(size = 10L, hjust = 0, face = "italic"),
+        axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1, size=11))->grafico_regional_vio
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.height=3}
+#Gráfico de barras total
+ggplotly(grafico_regional_vio, tooltip = "text")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Violación") %>% 
+  group_by(Región, Año) %>% 
+  summarise(Total_regional=sum(value)) %>% 
+  arrange(-Total_regional) %>% 
+  pivot_wider(names_from = Año, values_from = Total_regional)->regional_delito
+
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Violación") %>% 
+  group_by(Año) %>% 
+  summarise(Total_regional=sum(value)) %>%
+  pivot_wider(names_from = Año, values_from = Total_regional)-> entidad_delito
+
+rbind(regional_delito, entidad_delito)->resumen
+resumen[is.na(resumen)] <- "Total entidad"
+
+resumen_vio<-resumen %>%  select(Región, `2015`, `2016`, `2017`, `2018`, `2019`, `2020`, `2021`, `2022`)
+```
+
+```{r echo=FALSE, fig.height=10, fig.width=2}
+DT::datatable(resumen_vio, options = list(
+  paging= FALSE,
+  searching = FALSE,
+  pageLength = FALSE,
+  lengthMenu = TRUE))
+```
+
+```{r include=FALSE}
+merge_regional %>% 
+  mutate(Periodo = ymd(paste0(Año, "-", Mes, "-01"))) %>%
+  filter(Periodo<="2022-11-01") %>%  
+  group_by(Periodo) %>% 
+  filter(Subtipo.de.delito=="Violación") %>% 
+  summarise(Total=sum(value))->vio_jal
+merge_regional %>% 
+  mutate(Periodo = ymd(paste0(Año, "-", Mes, "-01"))) %>%
+  filter(Periodo<="2022-11-01") %>%  
+  group_by(Periodo) %>% 
+  filter(Subtipo.de.delito=="Violación") %>% 
+  summarise(Total=sum(value)) %>% 
+  arrange(-Total) %>% 
+  slice_head(n=1)->periodo_maximo_vio
+año_periodo_maximo_vio<-periodo_maximo_vio[1,1]
+#año_periodo_maximo_vio<-substr(año_periodo_maximo_vio$Periodo, start = 1, stop = 7)
+suma_periodo_maximo_vio<-periodo_maximo_vio[1,2]
+suma_periodo_maximo_vio<-suma_periodo_maximo_vio %>% unlist()
+merge_regional %>%
+  filter(Subtipo.de.delito %in% "Violación") %>%
+  summarise(Total=sum(value))->vio_2022_total
+vio_2022_total %>% unlist()
+merge_regional %>%
+  filter(Subtipo.de.delito %in% "Violación") %>%
+  summarise(Total=sum(value),
+            Promedio=round(Total/92))->historico_vio
+historico_vio[1,2]->promedio_vio
+historico_vio[1,1]->suma_vio
+suma_vio<-suma_vio %>% unlist
+vio_jal %>%
+   mutate(text = paste("Periodo: ", format(as_date(vio_jal$Periodo), "%B de %Y"),
+                    "\nTotal de carpetas: ", scales::comma(Total), sep="")) %>%
+     filter(Periodo<="2022-11-01") %>%  
+ggplot() +
+  aes(x = Periodo, y = Total, group=1,text=text) +
+  geom_line(size = .5, colour = "#7030A0") +
+  geom_point(size = 1,colour = "#7030A0")+
+  theme_minimal()+
+  labs(title = "Gráfica 5. Carpetas de investigación por el delito de violación, de enero 2015 a noviembre 2022",
+       caption = "Elaborado con datos de Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública",
+       x="", y="", color="", fill="") +
+  theme_minimal() + 
+  theme(text=element_text(size=11, family = "Century Gothic"),
+        legend.position='none',
+        plot.title = element_text(size = 10L, hjust = 0, color = "#6e6d6d", family = "Century Gothic"),
+        plot.caption = element_text(size = 10L, hjust = 0, face = "italic", family = "Century Gothic"),
+        axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1, size=11, family = "Century Gothic"))->vio_ts
+```
+
+En el periodo 2015 a 2022 se contabilizan **`r comma(suma_vio)`** carpetas por **Violación**, un promedio mensual de **`r comma(promedio_vio)`**. El mes con mayor registros de carpetas de investigación por este delito es el periodo de **`r format(as_date(año_periodo_maximo_vio$Periodo), "%B de %Y")`** con **`r comma(suma_periodo_maximo_vio)`**.
+
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+ggplotly(vio_ts, tooltip = "text")
+```
+
+```{r include=FALSE, fig.width=10, fig.height=5}
+merge_regional %>%
+  filter(Región %in% "Región Valles") %>%
+  filter(Subtipo.de.delito %in% "Violación") %>%
+  group_by(Año) %>% 
+  summarise(Total=sum(value))->anual_vio
+vio_total<- anual_vio%>% 
+  summarise(Total=sum(Total))
+vio_total<-vio_total %>% unlist()
+vio_año<-anual_vio %>% 
+   arrange(-Total)
+vio_año<-vio_año[1,1]
+  
+vio_max<-anual_vio %>% 
+   arrange(-Total)
+vio_max<-vio_max[1,2]
+vio_max<-vio_max %>% unlist()
+merge_regional %>%
+  filter(Región %in% "Región Valles",
+         Subtipo.de.delito %in% "Violación",
+         Año==2022) %>%
+  summarise(Total=sum(value))->vio_2022
+vio_2022<-vio_2022 %>% unlist()
+merge_regional %>%
+  filter(Región %in% "Región Valles",
+         Subtipo.de.delito %in% "Violación",
+         Año==2022) %>%
+  group_by(Municipio) %>% 
+  summarise(Total=sum(value)) %>% 
+  arrange(-Total)->vio_2022_mun
+mun_principales_vio<-vio_2022_mun %>% select(Municipio) %>% slice_head(n = 4) %>% unlist()
+vio_2022_mun %>% 
+  slice_head(n = 4) %>% 
+  summarise(Total=sum(Total))->vio_principal_4_suma
+vio_2022_mun<-vio_2022_mun %>% summarise(Total=sum(Total))
+principal_porcentaje_vio<-(vio_principal_4_suma/vio_2022_mun)*100
+anual_vio %>% 
+  mutate(text = paste("Año: ", Año,
+                    "\nTotal de carpetas: ", scales::comma(Total), sep=""))%>%
+ggplot() +
+  aes(x =as.factor(Año), y = Total, text=text) +
+  geom_col(fill = "#7030A0") +
+  theme_minimal()+
+  #geom_text(aes(label=comma(Total)), size=3.0)+
+  scale_fill_hue(direction = 1) +
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal()+
+  labs(title = "Gráfica 6. Carpetas anuales de investigación por el delito de violación",
+       caption = "Elaborado con datos de Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública",
+       x="", y="", color="", fill="") +
+  theme_minimal() + 
+  theme(text=element_text(size=11),
+        legend.position='none',
+        plot.title = element_text(size = 10L, hjust = 0, color = "#6e6d6d"),
+        plot.caption = element_text(size = 10L, hjust = 0, face = "italic"),
+        axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1, size=11))->g_anual_vio
+```
+
+De 2015 a 2022 se han registrado **`r comma(vio_total)`** carpetas de **Violación** en la región, el año con mayor registros es el **`r vio_año`** con **`r comma(vio_max)`**. De enero a noviembre 2022 se han contabilizado **`r comma(vio_2022)`** carpetas.
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+ggplotly(g_anual_vio, tooltip = "text")
+```
+
+De los municipios con mayor número de incidencia se encuentran: **`r mun_principales_vio`**, los cuales representan el **`r round(principal_porcentaje_vio)`** **%** de las carpetas registradas en la región durante 2022.
+
+```{r include=FALSE}
+merge_regional %>%
+  filter(Región %in% "Región Valles") %>%
+  filter(Subtipo.de.delito %in% "Violación") %>%
+  group_by(Municipio, Año) %>% 
+  summarise(Total=sum(value)) %>%  
+  pivot_wider(names_from = Año, values_from = Total) %>% 
+  select(Municipio, `2015`,`2016`,`2017`,`2018`,`2019`,`2020`,`2021`,`2022`) %>% 
+  arrange(-`2022`) %>% 
+  mutate(`2015`=scales::comma(`2015`),
+         `2016`=scales::comma(`2016`),
+         `2017`=scales::comma(`2017`),
+         `2018`=scales::comma(`2018`),
+         `2019`=scales::comma(`2019`),
+         `2020`=scales::comma(`2020`),
+         `2021`=scales::comma(`2021`),
+         `2022`=scales::comma(`2022`))->asi
+```
+
+```{r echo=FALSE, fig.width=4, fig.height=3}
+DT::datatable(asi, options = list(
+  paging= FALSE,
+  searching = FALSE,
+  pageLength = FALSE,
+  lengthMenu = TRUE))
+```
+
+------------------------------------------------------------------------
+
+<p style="text-align: left;">
+
+## **Violencia familiar**
+
+</p>
+
+```{r include=FALSE}
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Violencia familiar") %>% 
+  group_by(Región) %>% 
+  summarise(Total_regional=sum(value)) %>% 
+  arrange(-Total_regional)->merge_regional_vf
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Violencia familiar") %>% 
+  summarise(Total_regional=sum(value))->total_regional_vf
+total_regional_vf[1,1]->historico_vf
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Violencia familiar",
+         Región=="Región Valles") %>% 
+  summarise(Total_regional=sum(value),
+            porcentaje=percent(Total_regional/82351))->porcentaje_regional_vf
+porcentaje_regional_vf[1,1]->total_regional_vf
+porcentaje_regional_vf[1,2]->porcentaje_regional_vf
+merge_regional_vf[1,1]->primera_region_vf
+merge_regional_vf[1,2]->primera_total_vf
+primera_total_vf<-primera_total_vf %>% unlist()
+merge_regional_vf[2,1]->segundo_region_vf
+merge_regional_vf[2,2]->segundo_total_vf
+segundo_total_vf<-segundo_total_vf %>% unlist()
+merge_regional_vf[3,1]->tercer_region_vf
+merge_regional_vf[3,2]->tercer_total_vf
+tercer_total_vf<-tercer_total_vf %>% unlist()
+```
+
+De acuerdo a los datos abiertos del Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública (SESNSP) del histórico de 2015 a noviembre del 2022, la **Región Valles** del estado de Jalisco representa el **`r porcentaje_regional_vf`** de las carpetas de investigación por **Violencia familiar** con una cifra de **`r comma(total_regional_vf)`**.
+
+La gráfica 1 muestra el ranking de regiones en el mismo periodo (2015 a 2022), en primera posición se encuentra la **`r primera_region_vf`**, con un total de **`r comma(primera_total_vf)`**, le sigue la **`r segundo_region_vf`** con **`r comma(segundo_total_vf)`** y **`r tercer_region_vf`** con **`r comma(tercer_total_vf)`** carpetas.
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+nb.cols <-12
+mycolors <- colorRampPalette(brewer.pal(9, "RdPu"))
+(nb.cols)
+merge_regional_vf %>% 
+mutate(text = paste("Región: ", Región,
+                    "\nTotal de carpetas: ", scales::comma(Total_regional), sep=""))%>%
+ggplot() + #Cambiar
+  aes(x=reorder(Región, Total_regional), y= Total_regional, 
+      fill= Total_regional, text=text) +
+  geom_col() +
+  #geom_text(aes(label=comma(Total_regional)), size=3.0, vjust = .5, hjust=-1) +
+  #scale_fill_viridis(discrete = F, option = "I", direction = -1) + #opción  A, B, C , D , E , F ,G +
+  scale_fill_gradient(low = "#dc8cad", high = "#f21d72")+
+  scale_y_continuous(labels = scales::comma) +
+  coord_flip() +
+  #scale_color_brewer(palette = "Dark2", direction = -1, labels = comma)+
+  labs(title = "Gráfica 7. Total de carpetas de investigación por el delito de violencia familiar",
+       caption = "Elaborado con datos de Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública",
+       x="", y="", color="", fill="") +
+  theme_minimal() + 
+  theme(text=element_text(size=11),
+        legend.position='none',
+        plot.title = element_text(size = 10L, hjust = 0, color = "#6e6d6d"),
+        plot.caption = element_text(size = 10L, hjust = 0, face = "italic"),
+        axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1, size=11))->grafico_regional_vf
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.height=3}
+#Gráfico de barras total
+ggplotly(grafico_regional_vf, tooltip="text")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Violencia familiar") %>% 
+  group_by(Región, Año) %>% 
+  summarise(Total_regional=sum(value)) %>% 
+  arrange(-Total_regional) %>% 
+  pivot_wider(names_from = Año, values_from = Total_regional)->regional_delito
+
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Violencia familiar") %>% 
+  group_by(Año) %>% 
+  summarise(Total_regional=sum(value)) %>%
+  pivot_wider(names_from = Año, values_from = Total_regional)-> entidad_delito
+
+rbind(regional_delito, entidad_delito)->resumen
+resumen[is.na(resumen)] <- "Total entidad"
+
+resumen_viofam<-resumen %>%  select(Región, `2015`, `2016`, `2017`, `2018`, `2019`, `2020`, `2021`, `2022`)
+```
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+DT::datatable(resumen_viofam, options = list(
+  paging= FALSE,
+  searching = FALSE,
+  pageLength = FALSE,
+  lengthMenu = TRUE))
+```
+
+```{r include=FALSE}
+merge_regional %>% 
+  mutate(Periodo = ymd(paste0(Año, "-", Mes, "-01"))) %>%
+  filter(Periodo<="2022-11-01") %>%  
+  group_by(Periodo) %>% 
+  filter(Subtipo.de.delito=="Violencia familiar") %>% 
+  summarise(Total=sum(value))->vf_jal
+merge_regional %>% 
+  mutate(Periodo = ymd(paste0(Año, "-", Mes, "-01"))) %>%
+  filter(Periodo<="2022-11-01") %>%  
+  group_by(Periodo) %>% 
+  filter(Subtipo.de.delito=="Violencia familiar") %>% 
+  summarise(Total=sum(value)) %>% 
+  arrange(-Total) %>% 
+  slice_head(n=1)->periodo_maximo_vf
+año_periodo_maximo_vf<-periodo_maximo_vf[1,1]
+#año_periodo_maximo_vf<-substr(año_periodo_maximo_vf$Periodo, start = 1, stop = 7)
+suma_periodo_maximo_vf<-periodo_maximo_vf[1,2]
+suma_periodo_maximo_vf<-suma_periodo_maximo_vf %>% unlist()
+merge_regional %>%
+  filter(Subtipo.de.delito %in% "Violencia familiar") %>%
+  summarise(Total=sum(value))->vf_2022_total
+vf_2022_total %>% unlist()
+merge_regional %>%
+  filter(Subtipo.de.delito %in% "Violencia familiar") %>%
+  summarise(Total=sum(value),
+            Promedio=round(Total/92))->historico_vf
+historico_vf[1,2]->promedio_vf
+historico_vf[1,1]->suma_vf
+suma_vf<-suma_vf %>% unlist
+vf_jal %>% 
+ filter(Periodo<="2022-11-01") %>%  
+ mutate(text = paste("Periodo: ", format(as_date(asi_jal$Periodo), "%B de %Y"),
+                    "\nTotal de carpetas: ", scales::comma(Total), sep=""))%>%
+ggplot() +
+  aes(x = Periodo, y = Total, group=1, text=text) +
+  geom_line(size = .5, colour = "#f21d72") +
+  geom_point(size = 1,colour = "#f21d72")+
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal()+
+  labs(title = "Gráfica 8. Carpetas de investigación por el delito de violencia familiar, de enero 2015 a noviembre 2022",
+       caption = "Elaborado con datos de Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública",
+       x="", y="", color="", fill="") +
+  theme_minimal() + 
+  theme(text=element_text(size=11),
+        legend.position='none',
+        plot.title = element_text(size = 10L, hjust = 0, color = "#6e6d6d"),
+        plot.caption = element_text(size = 10L, hjust = 0, face = "italic"),
+        axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1, size=11))->vf_ts
+```
+
+En el periodo 2015 a 2022 se contabilizan **`r comma(suma_vf)`** carpetas por **Violencia familiar**, un promedio mensual de **`r comma(promedio_vf)`**. El mes con mayor registros de carpetas de investigación por este delito es el periodo de **`r format(as_date(año_periodo_maximo_vf$Periodo), "%B de %Y")`** con **`r comma(suma_periodo_maximo_vf)`**.
+
+
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+ggplotly(vf_ts, tooltip = "text")
+```
+
+```{r include=FALSE, fig.width=10, fig.height=5}
+merge_regional %>%
+  filter(Región %in% "Región Valles") %>%
+  filter(Subtipo.de.delito %in% "Violencia familiar") %>%
+  group_by(Año) %>% 
+  summarise(Total=sum(value))->anual_vf
+vf_total<- anual_vf%>% 
+  summarise(Total=sum(Total))
+vf_total<-vf_total %>% unlist()
+vf_año<-anual_vf %>% 
+   arrange(-Total)
+vf_año<-vf_año[1,1]
+  
+vf_max<-anual_vf %>% 
+   arrange(-Total)
+vf_max<-vf_max[1,2]
+vf_max<-vf_max %>% unlist()
+merge_regional %>%
+  filter(Región %in% "Región Valles",
+         Subtipo.de.delito %in% "Violencia familiar",
+         Año==2022) %>%
+  summarise(Total=sum(value))->vf_2022
+vf_2022<-vf_2022 %>% unlist()
+merge_regional %>%
+  filter(Región %in% "Región Valles",
+         Subtipo.de.delito %in% "Violencia familiar",
+         Año==2022) %>%
+  group_by(Municipio) %>% 
+  summarise(Total=sum(value)) %>% 
+  arrange(-Total)->vf_2022_mun
+mun_principales_vf<-vf_2022_mun %>% select(Municipio) %>% slice_head(n = 4) %>% unlist()
+vf_2022_mun %>% 
+  slice_head(n = 4) %>% 
+  summarise(Total=sum(Total))->vf_principal_4_suma
+vf_2022_mun<-vf_2022_mun %>% summarise(Total=sum(Total))
+principal_porcentaje_vf<-(vf_principal_4_suma/vf_2022_mun)*100
+anual_vf %>% 
+ mutate(text = paste("Año: ", Año,
+                    "\nTotal de carpetas: ", scales::comma(Total), sep=""))%>%
+  
+ggplot() +
+  aes(x =as.factor(Año), y = Total, text=text) +
+  geom_col(fill = "#f21d72") +
+  theme_minimal()+
+  #geom_text(aes(label=comma(Total)), size=3.0)+
+  scale_fill_hue(direction = 1) +
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal()+
+  labs(title = "Gráfica 9. Carpetas anuales de investigación por el delito de violencia familiar",
+       caption = "Elaborado con datos de Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública",
+       x="", y="", color="", fill="") +
+  theme_minimal() + 
+  theme(text=element_text(size=11),
+        legend.position='none',
+        plot.title = element_text(size = 10L, hjust = 0, color = "#6e6d6d"),
+        plot.caption = element_text(size = 10L, hjust = 0, face = "italic"),
+        axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1, size=11))->g_anual_vf
+```
+
+De 2015 a 2022 se han registrado **`r comma(vf_total)`** carpetas de **Violencia familiar** en la región, el año con mayor registros es el **`r vf_año`** con **`r comma(vf_max)`**. De enero a noviembre 2022 se han contabilizado **`r comma(vf_2022)`** carpetas.
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+ggplotly(g_anual_vf, tooltip = "text")
+```
+
+De los municipios con mayor número de incidencia se encuentran: **`r mun_principales_vf`**, los cuales representan el **`r round(principal_porcentaje_vf)`** **%** de las carpetas registradas en la región durante 2022.
+
+```{r include=FALSE}
+merge_regional %>%
+  filter(Región %in% "Región Valles") %>%
+  filter(Subtipo.de.delito %in% "Violencia familiar") %>%
+  group_by(Municipio, Año) %>% 
+  summarise(Total=sum(value)) %>%  
+  pivot_wider(names_from = Año, values_from = Total) %>% 
+  select(Municipio, `2015`,`2016`,`2017`,`2018`,`2019`,`2020`,`2021`,`2022`) %>% 
+  arrange(-`2022`) %>% 
+  mutate(`2015`=scales::comma(`2015`),
+         `2016`=scales::comma(`2016`),
+         `2017`=scales::comma(`2017`),
+         `2018`=scales::comma(`2018`),
+         `2019`=scales::comma(`2019`),
+         `2020`=scales::comma(`2020`),
+         `2021`=scales::comma(`2021`),
+         `2022`=scales::comma(`2022`))->asi
+```
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+DT::datatable(asi, options = list(
+  paging= FALSE,
+  searching = FALSE,
+  pageLength = FALSE,
+  lengthMenu = TRUE))
+```
+
+------------------------------------------------------------------------
+
+<p style="text-align: left;">
+
+## **Feminicidio**
+
+</p>
+
+```{r include=FALSE}
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Feminicidio") %>% 
+  group_by(Región) %>% 
+  summarise(Total_regional=sum(value)) %>% 
+  arrange(-Total_regional)->merge_regional_femi
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Feminicidio") %>% 
+  summarise(Total_regional=sum(value))->total_regional_femi
+total_regional_femi[1,1]->historico_femi
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Feminicidio",
+         Región=="Región Valles") %>% 
+  summarise(Total_regional=sum(value),
+            porcentaje=percent(Total_regional/398))->porcentaje_regional_femi
+porcentaje_regional_femi[1,1]->total_regional_femi
+porcentaje_regional_femi[1,2]->porcentaje_regional_femi
+merge_regional_femi[1,1]->primera_region_femi
+merge_regional_femi[1,2]->primera_total_femi
+merge_regional_femi[2,1]->segundo_region_femi
+merge_regional_femi[2,2]->segundo_total_femi
+merge_regional_femi[3,1]->tercer_region_femi
+merge_regional_femi[3,2]->tercer_total_femi
+```
+
+De acuerdo a los datos abiertos del Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública (SESNSP) del histórico de 2015 a noviembre del 2022, la **Región Valles** del estado de Jalisco representa el **`r porcentaje_regional_femi`** de las carpetas de investigación por este delito con una cifra de **`r total_regional_femi`**.
+
+La gráfica 1 muestra el ranking de regiones en el mismo periodo (2015 a 2022), en primera posición se encuentra la **`r primera_region_femi`**, con un total de **`r primera_total_femi`**, le sigue la **`r segundo_region_femi`** con **`r segundo_total_femi`** y **`r tercer_region_femi`** con **`r tercer_total_femi`** carpetas.
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+nb.cols <-12
+mycolors <- colorRampPalette(brewer.pal(9, "RdPu"))
+(nb.cols)
+merge_regional_femi %>% 
+  mutate(text = paste("Región: ", Región,
+                    "\nTotal de carpetas: ", scales::comma(Total_regional), sep=""))%>%
+ggplot() + #Cambiar
+  aes(x=reorder(Región, Total_regional), y= Total_regional, 
+      fill= Total_regional, text=text) +
+  geom_col() +
+  #geom_text(aes(label=comma(Total_regional)), size=3.0, color="#030303", vjust = .5, hjust=-1) +
+  #scale_fill_viridis(discrete = F, option = "I", direction = -1) + #opción  A, B, C , D , E , F ,G +
+  scale_fill_gradient(low = "#BA8CDC", high = "#7030A0")+
+  scale_y_continuous(labels = scales::comma) +
+  coord_flip() +
+  #scale_color_brewer(palette = "Dark2", direction = -1, labels = comma)+
+  labs(title = "Gráfica 10. Total de carpetas de investigación por el delito de feminicidio",
+       caption = "Elaborado con datos de Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública",
+       x="", y="", color="", fill="") +
+  theme_minimal() + 
+  theme(text=element_text(size=11),
+        legend.position='none',
+        plot.title = element_text(size = 10L, hjust = 0, color = "#6e6d6d"),
+        plot.caption = element_text(size = 10L, hjust = 0, face = "italic"),
+        axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1, size=11))->grafico_regional_femi
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.height=3}
+#Gráfico de barras total
+ggplotly(grafico_regional_femi, tooltip = "text")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Feminicidio") %>% 
+  group_by(Región, Año) %>% 
+  summarise(Total_regional=sum(value)) %>% 
+  arrange(-Total_regional) %>% 
+  pivot_wider(names_from = Año, values_from = Total_regional)->regional_delito
+
+merge_regional %>% 
+  filter(Subtipo.de.delito=="Feminicidio") %>% 
+  group_by(Año) %>% 
+  summarise(Total_regional=sum(value)) %>%
+  pivot_wider(names_from = Año, values_from = Total_regional)-> entidad_delito
+
+rbind(regional_delito, entidad_delito)->resumen
+resumen[is.na(resumen)] <- "Total entidad"
+
+resumen_feminicidio<-resumen %>%  select(Región, `2015`, `2016`, `2017`, `2018`, `2019`, `2020`, `2021`, `2022`)
+```
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+DT::datatable(resumen_feminicidio, options = list(
+  paging= FALSE,
+  searching = FALSE,
+  pageLength = FALSE,
+  lengthMenu = TRUE))
+```
+
+```{r include=FALSE}
+merge_regional %>% 
+  mutate(Periodo = ymd(paste0(Año, "-", Mes, "-01"))) %>%
+  filter(Periodo<="2022-11-01") %>%  
+  group_by(Periodo) %>% 
+  filter(Subtipo.de.delito=="Feminicidio") %>% 
+  summarise(Total=sum(value))->femi_jal
+merge_regional %>% 
+  mutate(Periodo = ymd(paste0(Año, "-", Mes, "-01"))) %>%
+  filter(Periodo<="2022-11-01") %>%  
+  group_by(Periodo) %>% 
+  filter(Subtipo.de.delito=="Feminicidio") %>% 
+  summarise(Total=sum(value)) %>% 
+  arrange(-Total) %>% 
+  slice_head(n=1)->periodo_maximo_femi
+año_periodo_maximo_femi<-periodo_maximo_femi[1,1]
+#año_periodo_maximo_femi<-substr(año_periodo_maximo_femi$Periodo, start = 1, stop = 7)
+suma_periodo_maximo_femi<-periodo_maximo_femi[1,2]
+merge_regional %>%
+  filter(Subtipo.de.delito %in% "Feminicidio") %>%
+  summarise(Total=sum(value))->femi_2022_total
+femi_2022_total %>% unlist()
+merge_regional %>%
+  filter(Subtipo.de.delito %in% "Feminicidio") %>%
+  summarise(Total=sum(value),
+            Promedio=round(Total/92))->historico_femi
+historico_femi[1,2]->promedio_femi
+historico_femi[1,1]->suma_femi
+femi_jal %>% 
+  filter(Periodo<="2022-11-01") %>% 
+   mutate(text = paste("Periodo: ", format(as_date(asi_jal$Periodo), "%B de %Y"),
+                    "\nTotal de carpetas: ", scales::comma(Total), sep=""))%>%
+ggplot() +
+  aes(x = Periodo, y = Total, text=text, group=1) +
+  geom_line(size = .5, colour = "#7030A0") +
+  geom_point(size = 1,colour = "#7030A0")+
+  theme_minimal()+
+  labs(title = "Gráfica 11. Carpetas de investigación por el delito de feminicidio, de enero 2015 a noviembre 2022",
+       caption = "Elaborado con datos de Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública",
+       x="", y="", color="", fill="") +
+  theme_minimal() + 
+  theme(text=element_text(size=11),
+        legend.position='none',
+        plot.title = element_text(size = 10L, hjust = 0, color = "#6e6d6d"),
+        plot.caption = element_text(size = 10L, hjust = 0, face = "italic"),
+        axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1, size=11))->femi_ts
+```
+
+De 2015 a 2022 se contabilizan **`r suma_femi`** carpetas por **Feminicidio**, un promedio mensual de **`r promedio_femi`**. El mes con mayor registros de carpetas de investigación por este delito es el periodo de **`r format(as_date(año_periodo_maximo_femi$Periodo), "%B de %Y")`** con **`r suma_periodo_maximo_femi`**.
+
+
+\newpage
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+ggplotly(femi_ts, tooltip = "text")
+```
+
+```{r include=FALSE, fig.width=10, fig.height=5}
+merge_regional %>%
+  filter(Región %in% "Región Valles") %>%
+  filter(Subtipo.de.delito %in% "Feminicidio") %>%
+  group_by(Año) %>% 
+  summarise(Total=sum(value))->anual_femi
+femi_total<- anual_femi%>% 
+  summarise(Total=sum(Total))
+femi_año<-anual_femi %>% 
+   arrange(-Total)
+femi_año<-femi_año[1,1]
+  
+femi_max<-anual_femi %>% 
+   arrange(-Total)
+femi_max<-femi_max[1,2]
+merge_regional %>%
+  filter(Región %in% "Región Valles",
+         Subtipo.de.delito %in% "Feminicidio",
+         Año==2022) %>%
+  summarise(Total=sum(value))->femi_2022
+merge_regional %>%
+  filter(Región %in% "Región Valles",
+         Subtipo.de.delito %in% "Feminicidio",
+         Año==2022) %>%
+  group_by(Municipio) %>% 
+  summarise(Total=sum(value)) %>% 
+  arrange(-Total)->femi_2022_mun
+mun_principales_femi<-femi_2022_mun %>% select(Municipio) %>% slice_head(n = 4) %>% unlist()
+femi_2022_mun %>% 
+  slice_head(n = 4) %>% 
+  summarise(Total=sum(Total))->femi_principal_4_suma
+femi_2022_mun<-femi_2022_mun %>% summarise(Total=sum(Total))
+principal_porcentaje_femi<-(femi_principal_4_suma/femi_2022_mun)*100
+anual_femi %>% 
+  mutate(text = paste("Año: ", Año,
+                    "\nTotal de carpetas: ", scales::comma(Total), sep=""))%>%
+ggplot() +
+  aes(x =as.factor(Año), y = Total, text=text) +
+  geom_col(fill = "#6609bd") +
+  theme_minimal()+
+  #geom_text(aes(label=comma(Total)), size=3.0, color="#030303")+
+  scale_fill_hue(direction = 1) +
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal()+
+  labs(title = "Gráfica 12. Carpetas anuales de investigación por el delito de feminicidio",
+       caption = "Elaborado con datos de Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública",
+       x="", y="", color="", fill="") +
+  theme_minimal() + 
+  theme(text=element_text(size=11),
+        legend.position='none',
+        plot.title = element_text(size = 10L, hjust = 0, color = "#6e6d6d"),
+        plot.caption = element_text(size = 10L, hjust = 0, face = "italic"),
+        axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1, size=11))->g_anual_femi
+```
+
+De 2015 a 2022 se han registrado **`r femi_total`** feminicidios en la región, el año con mayor registros es el **`r femi_año`** con **`r femi_max`**. De enero a noviembre 2022 se han contabilizado **`r femi_2022`** carpetas.
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+ggplotly(g_anual_femi, tooltip = "text")
+```
+
+De los municipios con mayor número de incidencia se encuentran: **`r mun_principales_femi`**, los cuales representan el **`r principal_porcentaje_femi`** **%** de las carpetas registradas en la región durante 2022.
+
+```{r include=FALSE}
+  merge_regional %>%
+  filter(Región %in% "Región Valles") %>%
+  filter(Subtipo.de.delito %in% "Feminicidio") %>%
+  group_by(Municipio, Año) %>% 
+  summarise(Total=sum(value)) %>%  
+  pivot_wider(names_from = Año, values_from = Total) %>% 
+  select(Municipio, `2015`,`2016`,`2017`,`2018`,`2019`,`2020`,`2021`,`2022`) %>% 
+  arrange(-`2022`) %>% 
+  mutate(`2015`=scales::comma(`2015`),
+         `2016`=scales::comma(`2016`),
+         `2017`=scales::comma(`2017`),
+         `2018`=scales::comma(`2018`),
+         `2019`=scales::comma(`2019`),
+         `2020`=scales::comma(`2020`),
+         `2021`=scales::comma(`2021`),
+         `2022`=scales::comma(`2022`))->femi
+```
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+DT::datatable(femi, options = list(
+  paging= FALSE,
+  searching = FALSE,
+  pageLength = FALSE,
+  lengthMenu = TRUE))
+```
+
+```{r include=FALSE}
+#Medidas
+medidas_ordenes_municipal <- read_excel("C:/Users/Paola Viridiana/Downloads/medidas_ordenes.xlsx", sheet = "municipal") %>% 
+  mutate(
+    mes=factor(mes,
+               levels=c("Enero", "Febrero", "Marzo","Abril", "Mayo", "Junio",
+                        "Julio", "Agosto", "noviembre", "Octubre","Noviembre", "Diciembre")))
+medidas_ordenes_municipal %>% 
+  #filter(año==2019) %>%
+  group_by(año, municipio) %>% 
+  summarise(medidas=sum(medidas_aceptadas + medidas_rechazadas),
+            ordenes=sum(ordenes_aceptadas + ordenes_rechazadas)) %>% 
+  pivot_longer(cols=c("ordenes","medidas"),
+               names_to = "tipo",
+               values_to = "total") ->medidas_y_ordenes
+ordenes_medidas_regional <- merge(regiones_jalisco, medidas_y_ordenes, by.x = "Municipio", by.y = "municipio", all.x = TRUE)
+###########################################################3
+ordenes_medidas_regional %>% 
+  filter(Región=="Región Valles",
+         tipo=="ordenes") %>% 
+  group_by(año,) %>% 
+  summarise(total=sum(total, na.rm = T)) %>% 
+  pivot_wider(names_from = año, values_from = total) %>% 
+  mutate(`2022`=as.numeric(`2022`)) %>% 
+  select(`2019`,`2020`,`2021`,`2022`) %>%
+  arrange(-`2022`) %>% 
+  mutate(`2019`=scales::comma(`2019`),
+         `2020`=scales::comma(`2020`),
+         `2021`=scales::comma(`2021`),
+         `2022`=scales::comma(`2022`))->ordenes_suma_año
+Municipio<- c("Total de la Región")
+cbind(Municipio, ordenes_suma_año)->entidad_total
+ordenes_medidas_regional %>% 
+  filter(Región=="Región Valles",
+         tipo=="ordenes") %>% 
+  group_by(año, Municipio) %>% 
+  summarise(total=sum(total, na.rm = T)) %>% 
+  pivot_wider(names_from = año, values_from = total) %>% 
+  mutate(`2022`=as.numeric(`2022`)) %>% 
+  select(Municipio,`2019`,`2020`,`2021`,`2022`) %>%
+  arrange(-`2022`) %>% 
+  mutate(`2019`=scales::comma(`2019`),
+         `2020`=scales::comma(`2020`),
+         `2021`=scales::comma(`2021`),
+         `2022`=scales::comma(`2022`))->ordenes
+rbind(entidad_total, ordenes)->ordenes
+ordenes_medidas_regional %>% 
+  filter(Región=="Región Valles",
+         tipo=="ordenes") %>% 
+  #group_by(año) %>% 
+  summarise(total=sum(total, na.rm = T))->ordenes_total
+ordenes_medidas_regional %>% 
+  filter(Región=="Región Valles",
+         tipo=="ordenes") %>% 
+  group_by(año) %>% 
+  summarise(total=sum(total, na.rm = T)) %>% 
+  arrange(-total) %>% 
+  mutate(total=scales::comma(total))->max_total_ordenes
+  
+suma_total_ordenes<-max_total_ordenes[1,2]
+max_total_año_ordenes<-max_total_ordenes[1,1]
+```
+
+```{r include=FALSE}
+
+ordenes_medidas_regional %>%
+  filter(tipo=="ordenes") %>% 
+  group_by(año) %>% 
+  summarise(Total=sum(total)) %>% 
+  pivot_wider(names_from = año, values_from = Total)->jalisco_ordenes
+
+jalisco_ordenes$Municipio<-"Total Jalisco"
+jalisco_ordenes
+
+rbind(ordenes, jalisco_ordenes)->ordenes
+
+```
+\newpage
+
+## **Ordenes de protección**
+
+En la Región Valles del 2019 a agosto de 2022 se han emitido **`r ordenes_total`** ordenes de protección, siendo el año **`r max_total_año_ordenes`** el de mayor número de registros históricos con **`r suma_total_ordenes`** En la tabla siguiente se presenta el desagregado por entidades de la región.
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+DT::datatable(ordenes, options = list(
+  paging= FALSE,
+  searching = FALSE,
+  pageLength = FALSE,
+  lengthMenu = TRUE))
+```
+
+```{r include=FALSE}
+#Medidas de protección
+ordenes_medidas_regional %>% 
+  filter(Región=="Región Valles",
+         tipo=="medidas") %>% 
+  group_by(año,) %>% 
+  summarise(total=sum(total, na.rm = T)) %>% 
+  pivot_wider(names_from = año, values_from = total) %>% 
+  mutate(`2022`=as.numeric(`2022`)) %>% 
+  select(`2019`,`2020`,`2021`,`2022`) %>%
+  arrange(-`2022`) %>% 
+  mutate(`2019`=scales::comma(`2019`),
+         `2020`=scales::comma(`2020`),
+         `2021`=scales::comma(`2021`),
+         `2022`=scales::comma(`2022`))->medidas_suma_año
+Municipio<- c("Total de la Región")
+cbind(Municipio, medidas_suma_año)->entidad_total
+ordenes_medidas_regional %>% 
+  filter(Región=="Región Valles",
+         tipo=="medidas") %>% 
+  group_by(año, Municipio) %>% 
+  summarise(total=sum(total, na.rm = T)) %>% 
+  pivot_wider(names_from = año, values_from = total) %>% 
+  mutate(`2022`=as.numeric(`2022`)) %>% 
+  select(Municipio,`2019`,`2020`,`2021`,`2022`) %>%
+  arrange(-`2022`) %>% 
+  mutate(`2019`=scales::comma(`2019`),
+         `2020`=scales::comma(`2020`),
+         `2021`=scales::comma(`2021`),
+         `2022`=scales::comma(`2022`))->medidas
+rbind(entidad_total, medidas)->medidas
+ordenes_medidas_regional %>% 
+  filter(Región=="Región Valles",
+         tipo=="medidas") %>% 
+  #group_by(año) %>% 
+  summarise(total=sum(total, na.rm = T))%>% 
+  mutate(total=scales::comma(total))->medidas_total
+ordenes_medidas_regional %>% 
+  filter(Región=="Región Valles",
+         tipo=="medidas") %>% 
+  group_by(año) %>% 
+  summarise(total=sum(total, na.rm = T)) %>% 
+  arrange(-total) %>% 
+  mutate(total=scales::comma(total))->max_total_medidas
+  
+suma_total_medidas<-max_total_medidas[1,2]
+max_total_año_medidas<-max_total_medidas[1,1]
+```
+
+\newpage
+## **Medidas de protección**
+
+En la Región Valles del 2019 a agosto de 2022 se han emitido **`r medidas_total`** medidas de protección, siendo el año **`r max_total_año_medidas`** el de mayor número registros históricos con **`r suma_total_medidas`** En la tabla siguiente se presenta el desagregado por entidades de la región.
+
+```{r include=FALSE}
+ordenes_medidas_regional %>%
+  filter(tipo=="medidas") %>% 
+  group_by(año) %>% 
+  summarise(Total=sum(total)) %>% 
+  pivot_wider(names_from = año, values_from = Total)->jalisco_medidas
+
+jalisco_medidas$Municipio<-"Total Jalisco"
+jalisco_medidas
+
+rbind(medidas, jalisco_medidas)->medidas
+
+```
+
+```{r echo=FALSE, fig.width=10, fig.height=3}
+DT::datatable(medidas, options = list(
+  paging= FALSE,
+  searching = FALSE,
+  pageLength = FALSE,
+  lengthMenu = TRUE))
+```
