@@ -11,7 +11,7 @@ Fuentes:
 Para la descripción regional de la elaboración se utilizó los diagnóstico regionales del IIEG
 
 
-**Package requerida
+**Package requerida**
 
 
 ```{r include=FALSE}
