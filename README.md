@@ -9,3 +9,9 @@ Fuentes:
 - Medidas y órdenes de protección del estado de Jalisco
 
 Para la descripción regional de la elaboración se utilizó los diagnóstico regionales del IIEG
+
+
+** Package requerida **
+
+install.packages(c("readxl", "dplyr", "ggplot2", "tidyverse", "esquisse", "tidyr", "plotly", "ggthemes", "janitor",
+"kableExtra", "scales", "viridis", "RColorBrewer", "extrafontdb", "extrafont", "sysfonts", "lubridate", "knitr" "DT", "pagedown"))
