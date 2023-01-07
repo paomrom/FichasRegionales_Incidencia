@@ -11,7 +11,10 @@ Fuentes:
 Para la descripción regional de la elaboración se utilizó los diagnóstico regionales del IIEG
 
 
-** Package requerida **
+**Package requerida
 
+
+```{r include=FALSE}
 install.packages(c("readxl", "dplyr", "ggplot2", "tidyverse", "esquisse", "tidyr", "plotly", "ggthemes", "janitor",
 "kableExtra", "scales", "viridis", "RColorBrewer", "extrafontdb", "extrafont", "sysfonts", "lubridate", "knitr" "DT", "pagedown"))
+```
